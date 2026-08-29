@@ -1,0 +1,1139 @@
+{
+  "manifest_schema_version": 3,
+  "sdk_version": "5.13.0",
+  "app_id": "hashicorp-vault-connector",
+  "version": "0.1.0",
+  "name": "HashiCorp Vault",
+  "description": "Connect your own HashiCorp Vault cluster (AppRole authentication) to read and manage KV v2 secrets, policies, and auth methods -- full read/write plus value-add vault health and secret-rotation reports. Secret values are never logged.",
+  "icon": "icon.svg",
+  "actions_explicit": true,
+  "system": false,
+  "capabilities": [
+    "vault:read",
+    "vault:write"
+  ],
+  "tools": [
+    {
+      "name": "connect_vault",
+      "description": "Connect your own HashiCorp Vault instance by saving its base URL plus an AppRole RoleID/SecretID, after checking it actually works.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "create:connection"
+      ],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "label": {
+            "default": "",
+            "description": "A friendly name for this Vault instance, e.g. 'Prod cluster'.",
+            "title": "Label",
+            "type": "string"
+          },
+          "base_url": {
+            "description": "Your Vault instance's base URL, e.g. https://vault.yourcompany.com:8200",
+            "title": "Base Url",
+            "type": "string"
+          },
+          "role_id": {
+            "description": "AppRole RoleID (vault read auth/approle/role/<name>/role-id).",
+            "title": "Role Id",
+            "type": "string"
+          },
+          "secret_id": {
+            "description": "AppRole SecretID (vault write -f auth/approle/role/<name>/secret-id).",
+            "title": "Secret Id",
+            "type": "string"
+          },
+          "verify_ssl": {
+            "default": true,
+            "description": "Verify the Vault instance's TLS certificate. Turn off only for self-signed certs in trusted internal networks.",
+            "title": "Verify Ssl",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "base_url",
+          "role_id",
+          "secret_id"
+        ],
+        "title": "ConnectVaultParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "properties": {
+          "connection_id": {
+            "default": "",
+            "title": "Connection Id",
+            "type": "string"
+          },
+          "label": {
+            "default": "",
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "title": "ConnectVaultResult",
+        "type": "object"
+      },
+      "event": "hashicorp-vault-connector.connect_vault",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_hashicorp-vault-connector_chat"
+    },
+    {
+      "name": "disconnect_vault",
+      "description": "Disconnect a HashiCorp Vault instance: deletes the saved RoleID/SecretID/token. Nothing in Vault itself is changed.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "delete:connection"
+      ],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "connection_id": {
+            "description": "The connection id to disconnect, from list_connections.",
+            "title": "Connection Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "connection_id"
+        ],
+        "title": "DisconnectVaultParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "properties": {
+          "deleted": {
+            "default": false,
+            "title": "Deleted",
+            "type": "boolean"
+          },
+          "id": {
+            "default": "",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "title": "DeleteResult",
+        "type": "object"
+      },
+      "event": "hashicorp-vault-connector.disconnect_vault",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_hashicorp-vault-connector_chat"
+    },
+    {
+      "name": "list_connections",
+      "description": "List the connected HashiCorp Vault instances.",
+      "action_type": "read",
+      "chain_callable": true,
+      "effects": [],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {},
+        "title": "ListConnectionsParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "$defs": {
+          "VaultConnection": {
+            "properties": {
+              "id": {
+                "default": "",
+                "title": "Id",
+                "type": "string"
+              },
+              "label": {
+                "default": "",
+                "title": "Label",
+                "type": "string"
+              },
+              "base_url": {
+                "default": "",
+                "title": "Base Url",
+                "type": "string"
+              }
+            },
+            "title": "VaultConnection",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "connections": {
+            "items": {
+              "$ref": "#/$defs/VaultConnection"
+            },
+            "title": "Connections",
+            "type": "array"
+          }
+        },
+        "title": "ConnectionList",
+        "type": "object"
+      },
+      "event": "",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_hashicorp-vault-connector_chat"
+    },
+    {
+      "name": "list_secrets",
+      "description": "List secret keys at a path in a KV v2 mount.",
+      "action_type": "read",
+      "chain_callable": true,
+      "effects": [],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "connection_id": {
+            "default": "",
+            "description": "Which saved Vault instance to use. Omit if only one is connected.",
+            "title": "Connection Id",
+            "type": "string"
+          },
+          "mount": {
+            "default": "secret",
+            "description": "The KV v2 secrets engine mount path, e.g. 'secret'.",
+            "title": "Mount",
+            "type": "string"
+          },
+          "path": {
+            "default": "",
+            "description": "Folder path to list within the mount, e.g. 'apps/'. Empty lists the root.",
+            "title": "Path",
+            "type": "string"
+          }
+        },
+        "title": "ListSecretsParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "properties": {
+          "keys": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Keys",
+            "type": "array"
+          }
+        },
+        "title": "SecretList",
+        "type": "object"
+      },
+      "event": "",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_hashicorp-vault-connector_chat"
+    },
+    {
+      "name": "get_secret",
+      "description": "Read one secret's current (or a specific) version from a KV v2 mount.",
+      "action_type": "read",
+      "chain_callable": true,
+      "effects": [],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "connection_id": {
+            "default": "",
+            "description": "Which saved Vault instance to use. Omit if only one is connected.",
+            "title": "Connection Id",
+            "type": "string"
+          },
+          "mount": {
+            "default": "secret",
+            "description": "The KV v2 secrets engine mount path.",
+            "title": "Mount",
+            "type": "string"
+          },
+          "path": {
+            "description": "The secret's path within the mount, e.g. 'apps/api-key'.",
+            "title": "Path",
+            "type": "string"
+          },
+          "version": {
+            "default": 0,
+            "description": "Specific version to read. 0 reads the latest version.",
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "title": "GetSecretParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "properties": {
+          "path": {
+            "default": "",
+            "title": "Path",
+            "type": "string"
+          },
+          "version": {
+            "default": 0,
+            "title": "Version",
+            "type": "integer"
+          },
+          "data": {
+            "additionalProperties": true,
+            "title": "Data",
+            "type": "object"
+          },
+          "created_time": {
+            "default": "",
+            "title": "Created Time",
+            "type": "string"
+          },
+          "deleted": {
+            "default": false,
+            "title": "Deleted",
+            "type": "boolean"
+          },
+          "destroyed": {
+            "default": false,
+            "title": "Destroyed",
+            "type": "boolean"
+          }
+        },
+        "title": "SecretData",
+        "type": "object"
+      },
+      "event": "",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_hashicorp-vault-connector_chat"
+    },
+    {
+      "name": "create_secret",
+      "description": "Create a new secret (or a new version if it already exists) at a path in a KV v2 mount.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "create:secret"
+      ],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "connection_id": {
+            "default": "",
+            "description": "Which saved Vault instance to use. Omit if only one is connected.",
+            "title": "Connection Id",
+            "type": "string"
+          },
+          "mount": {
+            "default": "secret",
+            "description": "The KV v2 secrets engine mount path.",
+            "title": "Mount",
+            "type": "string"
+          },
+          "path": {
+            "description": "The secret's path within the mount, e.g. 'apps/api-key'.",
+            "title": "Path",
+            "type": "string"
+          },
+          "data_json": {
+            "description": "JSON object of key/value pairs to store, e.g. '{\"api_key\": \"abc123\"}'.",
+            "title": "Data Json",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "data_json"
+        ],
+        "title": "CreateSecretParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "properties": {
+          "path": {
+            "default": "",
+            "title": "Path",
+            "type": "string"
+          },
+          "version": {
+            "default": 0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "title": "SecretWriteResult",
+        "type": "object"
+      },
+      "event": "hashicorp-vault-connector.create_secret",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_hashicorp-vault-connector_chat"
+    },
+    {
+      "name": "update_secret",
+      "description": "Write a new version of an existing secret at a path in a KV v2 mount, optionally with a check-and-set version guard.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "update:secret"
+      ],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "connection_id": {
+            "default": "",
+            "description": "Which saved Vault instance to use. Omit if only one is connected.",
+            "title": "Connection Id",
+            "type": "string"
+          },
+          "mount": {
+            "default": "secret",
+            "description": "The KV v2 secrets engine mount path.",
+            "title": "Mount",
+            "type": "string"
+          },
+          "path": {
+            "description": "The secret's path within the mount, e.g. 'apps/api-key'.",
+            "title": "Path",
+            "type": "string"
+          },
+          "data_json": {
+            "description": "JSON object of key/value pairs to store, e.g. '{\"api_key\": \"abc123\"}'.",
+            "title": "Data Json",
+            "type": "string"
+          },
+          "cas": {
+            "default": 0,
+            "description": "Check-and-set version for optimistic concurrency. 0 skips the check.",
+            "title": "Cas",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "path",
+          "data_json"
+        ],
+        "title": "UpdateSecretParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "properties": {
+          "path": {
+            "default": "",
+            "title": "Path",
+            "type": "string"
+          },
+          "version": {
+            "default": 0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "title": "SecretWriteResult",
+        "type": "object"
+      },
+      "event": "hashicorp-vault-connector.update_secret",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_hashicorp-vault-connector_chat"
+    },
+    {
+      "name": "delete_secret",
+      "description": "Soft-delete one or more versions of a secret (recoverable via undelete). Deletes only the latest version if none specified.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "delete:secret"
+      ],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "connection_id": {
+            "default": "",
+            "description": "Which saved Vault instance to use. Omit if only one is connected.",
+            "title": "Connection Id",
+            "type": "string"
+          },
+          "mount": {
+            "default": "secret",
+            "description": "The KV v2 secrets engine mount path.",
+            "title": "Mount",
+            "type": "string"
+          },
+          "path": {
+            "description": "The secret's path within the mount.",
+            "title": "Path",
+            "type": "string"
+          },
+          "versions": {
+            "description": "Specific versions to soft-delete. Empty deletes the latest version.",
+            "items": {
+              "type": "integer"
+            },
+            "title": "Versions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "title": "DeleteSecretParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "properties": {
+          "deleted": {
+            "default": false,
+            "title": "Deleted",
+            "type": "boolean"
+          },
+          "id": {
+            "default": "",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "title": "DeleteResult",
+        "type": "object"
+      },
+      "event": "hashicorp-vault-connector.delete_secret",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_hashicorp-vault-connector_chat"
+    },
+    {
+      "name": "destroy_secret",
+      "description": "Permanently destroy specific versions of a secret -- unlike delete_secret, this cannot be undone via undelete.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "delete:secret"
+      ],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "connection_id": {
+            "default": "",
+            "description": "Which saved Vault instance to use. Omit if only one is connected.",
+            "title": "Connection Id",
+            "type": "string"
+          },
+          "mount": {
+            "default": "secret",
+            "description": "The KV v2 secrets engine mount path.",
+            "title": "Mount",
+            "type": "string"
+          },
+          "path": {
+            "description": "The secret's path within the mount.",
+            "title": "Path",
+            "type": "string"
+          },
+          "versions": {
+            "description": "Specific versions to PERMANENTLY destroy. Cannot be undone.",
+            "items": {
+              "type": "integer"
+            },
+            "title": "Versions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "path",
+          "versions"
+        ],
+        "title": "DestroySecretParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "properties": {
+          "deleted": {
+            "default": false,
+            "title": "Deleted",
+            "type": "boolean"
+          },
+          "id": {
+            "default": "",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "title": "DeleteResult",
+        "type": "object"
+      },
+      "event": "hashicorp-vault-connector.destroy_secret",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_hashicorp-vault-connector_chat"
+    },
+    {
+      "name": "list_policies",
+      "description": "List ACL policies configured on the connected Vault instance.",
+      "action_type": "read",
+      "chain_callable": true,
+      "effects": [],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "connection_id": {
+            "default": "",
+            "description": "Which saved Vault instance to use. Omit if only one is connected.",
+            "title": "Connection Id",
+            "type": "string"
+          }
+        },
+        "title": "ListPoliciesParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "properties": {
+          "policies": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Policies",
+            "type": "array"
+          }
+        },
+        "title": "PolicyList",
+        "type": "object"
+      },
+      "event": "",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_hashicorp-vault-connector_chat"
+    },
+    {
+      "name": "get_policy",
+      "description": "Read one ACL policy's HCL rules in full by name.",
+      "action_type": "read",
+      "chain_callable": true,
+      "effects": [],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "connection_id": {
+            "default": "",
+            "description": "Which saved Vault instance to use. Omit if only one is connected.",
+            "title": "Connection Id",
+            "type": "string"
+          },
+          "name": {
+            "description": "The policy's name, from list_policies.",
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "GetPolicyParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "properties": {
+          "name": {
+            "default": "",
+            "title": "Name",
+            "type": "string"
+          },
+          "policy_hcl": {
+            "default": "",
+            "title": "Policy Hcl",
+            "type": "string"
+          }
+        },
+        "title": "PolicyDetail",
+        "type": "object"
+      },
+      "event": "",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_hashicorp-vault-connector_chat"
+    },
+    {
+      "name": "create_policy",
+      "description": "Create or overwrite an ACL policy with the given HCL rules.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "create:policy"
+      ],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "connection_id": {
+            "default": "",
+            "description": "Which saved Vault instance to use. Omit if only one is connected.",
+            "title": "Connection Id",
+            "type": "string"
+          },
+          "name": {
+            "description": "Name for the new policy.",
+            "title": "Name",
+            "type": "string"
+          },
+          "policy_hcl": {
+            "description": "The policy rules in HCL (e.g. 'path \"secret/data/*\" { capabilities = [\"read\"] }').",
+            "title": "Policy Hcl",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "policy_hcl"
+        ],
+        "title": "CreatePolicyParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "properties": {
+          "deleted": {
+            "default": false,
+            "title": "Deleted",
+            "type": "boolean"
+          },
+          "id": {
+            "default": "",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "title": "DeleteResult",
+        "type": "object"
+      },
+      "event": "hashicorp-vault-connector.create_policy",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_hashicorp-vault-connector_chat"
+    },
+    {
+      "name": "delete_policy",
+      "description": "Permanently delete an ACL policy by name. Cannot be undone.",
+      "action_type": "write",
+      "chain_callable": true,
+      "effects": [
+        "delete:policy"
+      ],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "connection_id": {
+            "default": "",
+            "description": "Which saved Vault instance to use. Omit if only one is connected.",
+            "title": "Connection Id",
+            "type": "string"
+          },
+          "name": {
+            "description": "The policy's name to permanently delete.",
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "DeletePolicyParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "properties": {
+          "deleted": {
+            "default": false,
+            "title": "Deleted",
+            "type": "boolean"
+          },
+          "id": {
+            "default": "",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "title": "DeleteResult",
+        "type": "object"
+      },
+      "event": "hashicorp-vault-connector.delete_policy",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_hashicorp-vault-connector_chat"
+    },
+    {
+      "name": "list_auth_methods",
+      "description": "List authentication methods (mounts, e.g. AppRole, LDAP, OIDC) enabled on the connected Vault instance.",
+      "action_type": "read",
+      "chain_callable": true,
+      "effects": [],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "connection_id": {
+            "default": "",
+            "description": "Which saved Vault instance to use. Omit if only one is connected.",
+            "title": "Connection Id",
+            "type": "string"
+          }
+        },
+        "title": "ListAuthMethodsParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "$defs": {
+          "AuthMethod": {
+            "properties": {
+              "path": {
+                "default": "",
+                "title": "Path",
+                "type": "string"
+              },
+              "type": {
+                "default": "",
+                "title": "Type",
+                "type": "string"
+              },
+              "description": {
+                "default": "",
+                "title": "Description",
+                "type": "string"
+              }
+            },
+            "title": "AuthMethod",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "methods": {
+            "items": {
+              "$ref": "#/$defs/AuthMethod"
+            },
+            "title": "Methods",
+            "type": "array"
+          }
+        },
+        "title": "AuthMethodList",
+        "type": "object"
+      },
+      "event": "",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_hashicorp-vault-connector_chat"
+    },
+    {
+      "name": "list_secrets_engines",
+      "description": "List Secrets Engines (mounts, e.g. KV v2, database, PKI) enabled on the connected Vault instance.",
+      "action_type": "read",
+      "chain_callable": true,
+      "effects": [],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "connection_id": {
+            "default": "",
+            "description": "Which saved Vault instance to use. Omit if only one is connected.",
+            "title": "Connection Id",
+            "type": "string"
+          }
+        },
+        "title": "ListSecretsEnginesParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "$defs": {
+          "SecretsEngine": {
+            "properties": {
+              "path": {
+                "default": "",
+                "title": "Path",
+                "type": "string"
+              },
+              "type": {
+                "default": "",
+                "title": "Type",
+                "type": "string"
+              },
+              "description": {
+                "default": "",
+                "title": "Description",
+                "type": "string"
+              }
+            },
+            "title": "SecretsEngine",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "engines": {
+            "items": {
+              "$ref": "#/$defs/SecretsEngine"
+            },
+            "title": "Engines",
+            "type": "array"
+          }
+        },
+        "title": "SecretsEngineList",
+        "type": "object"
+      },
+      "event": "",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_hashicorp-vault-connector_chat"
+    },
+    {
+      "name": "list_approles",
+      "description": "List AppRole role names configured under an AppRole auth mount.",
+      "action_type": "read",
+      "chain_callable": true,
+      "effects": [],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "connection_id": {
+            "default": "",
+            "description": "Which saved Vault instance to use. Omit if only one is connected.",
+            "title": "Connection Id",
+            "type": "string"
+          },
+          "mount": {
+            "default": "approle",
+            "description": "The AppRole auth method mount path.",
+            "title": "Mount",
+            "type": "string"
+          }
+        },
+        "title": "ListAppRolesParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "properties": {
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Roles",
+            "type": "array"
+          }
+        },
+        "title": "AppRoleList",
+        "type": "object"
+      },
+      "event": "",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_hashicorp-vault-connector_chat"
+    },
+    {
+      "name": "get_seal_status",
+      "description": "Read the connected Vault instance's seal status: sealed/initialized state, version, cluster name.",
+      "action_type": "read",
+      "chain_callable": true,
+      "effects": [],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "connection_id": {
+            "default": "",
+            "description": "Which saved Vault instance to use. Omit if only one is connected.",
+            "title": "Connection Id",
+            "type": "string"
+          }
+        },
+        "title": "GetSealStatusParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "properties": {
+          "sealed": {
+            "default": false,
+            "title": "Sealed",
+            "type": "boolean"
+          },
+          "initialized": {
+            "default": false,
+            "title": "Initialized",
+            "type": "boolean"
+          },
+          "version": {
+            "default": "",
+            "title": "Version",
+            "type": "string"
+          },
+          "cluster_name": {
+            "default": "",
+            "title": "Cluster Name",
+            "type": "string"
+          }
+        },
+        "title": "SealStatus",
+        "type": "object"
+      },
+      "event": "",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_hashicorp-vault-connector_chat"
+    },
+    {
+      "name": "get_health",
+      "description": "Read the connected Vault instance's health status: initialized/sealed/standby state.",
+      "action_type": "read",
+      "chain_callable": true,
+      "effects": [],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "connection_id": {
+            "default": "",
+            "description": "Which saved Vault instance to use. Omit if only one is connected.",
+            "title": "Connection Id",
+            "type": "string"
+          }
+        },
+        "title": "GetHealthParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "properties": {
+          "initialized": {
+            "default": false,
+            "title": "Initialized",
+            "type": "boolean"
+          },
+          "sealed": {
+            "default": false,
+            "title": "Sealed",
+            "type": "boolean"
+          },
+          "standby": {
+            "default": false,
+            "title": "Standby",
+            "type": "boolean"
+          },
+          "performance_standby": {
+            "default": false,
+            "title": "Performance Standby",
+            "type": "boolean"
+          },
+          "version": {
+            "default": "",
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "title": "HealthStatus",
+        "type": "object"
+      },
+      "event": "",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_hashicorp-vault-connector_chat"
+    },
+    {
+      "name": "audit_vault_instance",
+      "description": "Build one aggregated health report for the connected Vault instance: seal status, secrets engine and policy counts.",
+      "action_type": "read",
+      "chain_callable": true,
+      "effects": [],
+      "id_projection": "",
+      "params_schema": {
+        "properties": {
+          "connection_id": {
+            "default": "",
+            "description": "Which saved Vault instance to use. Omit if only one is connected.",
+            "title": "Connection Id",
+            "type": "string"
+          }
+        },
+        "title": "AuditVaultInstanceParams",
+        "type": "object"
+      },
+      "return_schema": {
+        "properties": {
+          "sealed": {
+            "default": false,
+            "title": "Sealed",
+            "type": "boolean"
+          },
+          "version": {
+            "default": "",
+            "title": "Version",
+            "type": "string"
+          },
+          "cluster_name": {
+            "default": "",
+            "title": "Cluster Name",
+            "type": "string"
+          },
+          "total_mounts": {
+            "default": 0,
+            "title": "Total Mounts",
+            "type": "integer"
+          },
+          "kv_mount_count": {
+            "default": 0,
+            "title": "Kv Mount Count",
+            "type": "integer"
+          },
+          "kv_mounts": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Kv Mounts",
+            "type": "array"
+          },
+          "policy_count": {
+            "default": 0,
+            "title": "Policy Count",
+            "type": "integer"
+          }
+        },
+        "title": "VaultInstanceReport",
+        "type": "object"
+      },
+      "event": "",
+      "background": false,
+      "long_running": false,
+      "scopes": [],
+      "owner_chat_tool": "tool_hashicorp-vault-connector_chat"
+    }
+  ],
+  "signals": [],
+  "schedules": [],
+  "required_scopes": [],
+  "icon_size_bytes": 677,
+  "panels": [
+    {
+      "panel_id": "sidebar",
+      "slot": "left",
+      "title": "",
+      "tree": {},
+      "icon": "",
+      "refresh": "manual",
+      "center_overlay": false
+    },
+    {
+      "panel_id": "vault_settings",
+      "slot": "center",
+      "title": "",
+      "tree": {},
+      "icon": "",
+      "refresh": "manual",
+      "center_overlay": false
+    }
+  ]
+}
