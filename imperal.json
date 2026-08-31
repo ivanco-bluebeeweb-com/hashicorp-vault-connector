@@ -1135,5 +1135,15 @@
       "refresh": "manual",
       "center_overlay": false
     }
+  ],
+  "secrets": [
+    {
+      "name": "vault_connections",
+      "description": "JSON array of connected Vault accounts/credentials (or pending OAuth state). Managed by the app's connect/disconnect tools.",
+      "required": false,
+      "write_mode": "both",
+      "max_bytes": 16384,
+      "scope": "user"
+    }
   ]
 }
