@@ -96,7 +96,7 @@ async def connect_vault(ctx, params: ConnectVaultParams) -> ActionResult:
     connections = await _load_connections(ctx)
     connections.append(conn)
     await _save_connections(ctx, connections)
-    return ActionResult.ok(ConnectVaultResult(connection_id=connection_id, label=conn["label"]))
+    return ActionResult.success(ConnectVaultResult(connection_id=connection_id, label=conn["label"]), summary="Vault connected.")
 
 
 @chat.function(
@@ -113,7 +113,7 @@ async def disconnect_vault(ctx, params: DisconnectVaultParams) -> ActionResult:
     if len(remaining) == len(connections):
         return ActionResult.error("Connection not found.", code=vc.VAULT_NOT_FOUND)
     await _save_connections(ctx, remaining)
-    return ActionResult.ok(DeleteResult(deleted=True, id=params.connection_id))
+    return ActionResult.success(DeleteResult(deleted=True, id=params.connection_id), summary="Vault disconnected.")
 
 
 @chat.function(
@@ -124,4 +124,4 @@ async def disconnect_vault(ctx, params: DisconnectVaultParams) -> ActionResult:
 async def list_connections(ctx, params: ListConnectionsParams) -> ActionResult:
     """List saved Vault connections."""
     connections = await _load_connections(ctx)
-    return ActionResult.ok(ConnectionList(connections=[_connection_to_entity(c) for c in connections]))
+    return ActionResult.success(ConnectionList(connections=[_connection_to_entity(c) for c in connections]), summary="Connections listed.")

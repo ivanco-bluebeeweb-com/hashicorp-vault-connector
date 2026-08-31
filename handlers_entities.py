@@ -60,7 +60,7 @@ async def list_secrets(ctx, params: ListSecretsParams) -> ActionResult:
         data = await vc.request(ctx, conn, "LIST", f"/{mount}/metadata/{path}", action="list secrets")
     except vc.ClientFail as exc:
         return ActionResult.error(exc.payload["message"], code=exc.payload["code"])
-    return ActionResult.ok(SecretList(keys=(data.get("data") or {}).get("keys", [])))
+    return ActionResult.success(SecretList(keys=(data.get("data") or {}).get("keys", [])), summary="Secrets listed.")
 
 
 @chat.function(
@@ -82,7 +82,7 @@ async def get_secret(ctx, params: GetSecretParams) -> ActionResult:
         data = await vc.request(ctx, conn, "GET", url_path, action="get secret")
     except vc.ClientFail as exc:
         return ActionResult.error(exc.payload["message"], code=exc.payload["code"])
-    return ActionResult.ok(_secret_data_entity(params.path, data))
+    return ActionResult.success(_secret_data_entity(params.path, data), summary="Secret retrieved.")
 
 
 @chat.function(
@@ -107,7 +107,7 @@ async def create_secret(ctx, params: CreateSecretParams) -> ActionResult:
     except vc.ClientFail as exc:
         return ActionResult.error(exc.payload["message"], code=exc.payload["code"])
     meta = data.get("data", {}) or {}
-    return ActionResult.ok(SecretWriteResult(path=params.path, version=meta.get("version", 0)))
+    return ActionResult.success(SecretWriteResult(path=params.path, version=meta.get("version", 0)), summary="Secret created.")
 
 
 @chat.function(
@@ -136,7 +136,7 @@ async def update_secret(ctx, params: UpdateSecretParams) -> ActionResult:
     except vc.ClientFail as exc:
         return ActionResult.error(exc.payload["message"], code=exc.payload["code"])
     meta = data.get("data", {}) or {}
-    return ActionResult.ok(SecretWriteResult(path=params.path, version=meta.get("version", 0)))
+    return ActionResult.success(SecretWriteResult(path=params.path, version=meta.get("version", 0)), summary="Secret updated.")
 
 
 @chat.function(
@@ -161,7 +161,7 @@ async def delete_secret(ctx, params: DeleteSecretParams) -> ActionResult:
             await vc.request(ctx, conn, "DELETE", f"/{mount}/data/{path}", action="delete secret")
     except vc.ClientFail as exc:
         return ActionResult.error(exc.payload["message"], code=exc.payload["code"])
-    return ActionResult.ok(DeleteResult(deleted=True, id=params.path))
+    return ActionResult.success(DeleteResult(deleted=True, id=params.path), summary="Secret deleted.")
 
 
 @chat.function(
@@ -183,7 +183,7 @@ async def destroy_secret(ctx, params: DestroySecretParams) -> ActionResult:
                           json_body={"versions": params.versions}, action="destroy secret versions")
     except vc.ClientFail as exc:
         return ActionResult.error(exc.payload["message"], code=exc.payload["code"])
-    return ActionResult.ok(DeleteResult(deleted=True, id=params.path))
+    return ActionResult.success(DeleteResult(deleted=True, id=params.path), summary="Destroy secret done.")
 
 
 @chat.function(
@@ -200,7 +200,7 @@ async def list_policies(ctx, params: ListPoliciesParams) -> ActionResult:
         data = await vc.request(ctx, conn, "LIST", "/sys/policies/acl", action="list policies")
     except vc.ClientFail as exc:
         return ActionResult.error(exc.payload["message"], code=exc.payload["code"])
-    return ActionResult.ok(PolicyList(names=(data.get("data") or {}).get("keys", [])))
+    return ActionResult.success(PolicyList(names=(data.get("data") or {}).get("keys", [])), summary="Policies listed.")
 
 
 @chat.function(
@@ -218,7 +218,7 @@ async def get_policy(ctx, params: GetPolicyParams) -> ActionResult:
     except vc.ClientFail as exc:
         return ActionResult.error(exc.payload["message"], code=exc.payload["code"])
     body = data.get("data") or {}
-    return ActionResult.ok(PolicyDetail(name=params.name, policy=body.get("policy", "")))
+    return ActionResult.success(PolicyDetail(name=params.name, policy=body.get("policy", "")), summary="Policy retrieved.")
 
 
 @chat.function(
@@ -237,7 +237,7 @@ async def create_policy(ctx, params: CreatePolicyParams) -> ActionResult:
                           json_body={"policy": params.policy}, action="create policy")
     except vc.ClientFail as exc:
         return ActionResult.error(exc.payload["message"], code=exc.payload["code"])
-    return ActionResult.ok(DeleteResult(deleted=False, id=params.name))
+    return ActionResult.success(DeleteResult(deleted=False, id=params.name), summary="Policy created.")
 
 
 @chat.function(
@@ -255,7 +255,7 @@ async def delete_policy(ctx, params: DeletePolicyParams) -> ActionResult:
         await vc.request(ctx, conn, "DELETE", f"/sys/policies/acl/{params.name}", action="delete policy")
     except vc.ClientFail as exc:
         return ActionResult.error(exc.payload["message"], code=exc.payload["code"])
-    return ActionResult.ok(DeleteResult(deleted=True, id=params.name))
+    return ActionResult.success(DeleteResult(deleted=True, id=params.name), summary="Policy deleted.")
 
 
 @chat.function(
@@ -273,10 +273,10 @@ async def list_auth_methods(ctx, params: ListAuthMethodsParams) -> ActionResult:
         data = await vc.request(ctx, conn, "GET", "/sys/auth", action="list auth methods")
     except vc.ClientFail as exc:
         return ActionResult.error(exc.payload["message"], code=exc.payload["code"])
-    return ActionResult.ok(AuthMethodList(methods=[
+    return ActionResult.success(AuthMethodList(methods=[
         AuthMethod(path=path, type=info.get("type", ""), description=info.get("description", ""))
         for path, info in (data.get("data") or data or {}).items() if isinstance(info, dict)
-    ]))
+    ]), summary="Auth methods listed.")
 
 
 @chat.function(
@@ -293,10 +293,10 @@ async def list_secrets_engines(ctx, params: ListSecretsEnginesParams) -> ActionR
         data = await vc.request(ctx, conn, "GET", "/sys/mounts", action="list secrets engines")
     except vc.ClientFail as exc:
         return ActionResult.error(exc.payload["message"], code=exc.payload["code"])
-    return ActionResult.ok(SecretsEngineList(engines=[
+    return ActionResult.success(SecretsEngineList(engines=[
         SecretsEngine(path=path, type=info.get("type", ""), description=info.get("description", ""))
         for path, info in (data.get("data") or data or {}).items() if isinstance(info, dict)
-    ]))
+    ]), summary="Secrets engines listed.")
 
 
 @chat.function(
@@ -314,7 +314,7 @@ async def list_approles(ctx, params: ListAppRolesParams) -> ActionResult:
         data = await vc.request(ctx, conn, "LIST", f"/auth/{mount}/role", action="list AppRoles")
     except vc.ClientFail as exc:
         return ActionResult.error(exc.payload["message"], code=exc.payload["code"])
-    return ActionResult.ok(AppRoleList(roles=(data.get("data") or {}).get("keys", [])))
+    return ActionResult.success(AppRoleList(roles=(data.get("data") or {}).get("keys", [])), summary="Approles listed.")
 
 
 @chat.function(
@@ -331,10 +331,10 @@ async def get_seal_status(ctx, params: GetSealStatusParams) -> ActionResult:
         data = await vc.request(ctx, conn, "GET", "/sys/seal-status", action="get seal status")
     except vc.ClientFail as exc:
         return ActionResult.error(exc.payload["message"], code=exc.payload["code"])
-    return ActionResult.ok(SealStatus(
+    return ActionResult.success(SealStatus(
         sealed=data.get("sealed", False), initialized=data.get("initialized", False),
         version=data.get("version", ""), cluster_name=data.get("cluster_name", ""),
-    ))
+    ), summary="Seal status retrieved.")
 
 
 @chat.function(
@@ -351,8 +351,8 @@ async def get_health(ctx, params: GetHealthParams) -> ActionResult:
         data = await vc.request(ctx, conn, "GET", "/sys/health", action="get health")
     except vc.ClientFail as exc:
         return ActionResult.error(exc.payload["message"], code=exc.payload["code"])
-    return ActionResult.ok(HealthStatus(
+    return ActionResult.success(HealthStatus(
         initialized=data.get("initialized", False), sealed=data.get("sealed", False),
         standby=data.get("standby", False), performance_standby=data.get("performance_standby", False),
         version=data.get("version", ""),
-    ))
+    ), summary="Health retrieved.")

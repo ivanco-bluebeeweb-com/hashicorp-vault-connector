@@ -38,7 +38,7 @@ async def audit_vault_instance(ctx, params: AuditVaultInstanceParams) -> ActionR
         if isinstance(info, dict) and info.get("type") == "kv"
     ]
     policy_list = (policies.get("data") or {}).get("keys", []) if isinstance(policies, dict) else []
-    return ActionResult.ok(VaultInstanceReport(
+    return ActionResult.success(VaultInstanceReport(
         sealed=seal.get("sealed", False),
         version=seal.get("version", ""),
         cluster_name=seal.get("cluster_name", ""),
@@ -46,4 +46,4 @@ async def audit_vault_instance(ctx, params: AuditVaultInstanceParams) -> ActionR
         kv_mount_count=len(kv_mounts),
         kv_mounts=kv_mounts,
         policy_count=len(policy_list),
-    ))
+    ), summary="Vault instance audit ready.")
