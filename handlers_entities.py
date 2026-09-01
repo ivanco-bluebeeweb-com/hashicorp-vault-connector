@@ -234,7 +234,7 @@ async def create_policy(ctx, params: CreatePolicyParams) -> ActionResult:
         return err
     try:
         await vc.request(ctx, conn, "PUT", f"/sys/policies/acl/{params.name}",
-                          json_body={"policy": params.policy}, action="create policy")
+                          json_body={"policy": params.policy_hcl}, action="create policy")
     except vc.ClientFail as exc:
         return ActionResult.error(exc.payload["message"], code=exc.payload["code"])
     return ActionResult.success(DeleteResult(deleted=False, id=params.name), summary="Policy created.")
