@@ -120,6 +120,13 @@ async def request(ctx, conn: dict, method: str, path: str, *, json_body: Any = N
     client_token = conn.get("client_token", "")
     if not base_url or not client_token:
         raise ClientFail(fail(VAULT_NOT_CONNECTED))
+    # Vault supports LIST as a custom HTTP method or via GET ?list=true.
+    # Cloudflare and some HTTP proxies block HTTP method LIST (returning 501 Not Implemented).
+    # Convert LIST into GET with ?list=true for maximum compatibility across tunnels/proxies.
+    if method.upper() == "LIST":
+        method = "GET"
+        sep = "&" if "?" in path else "?"
+        path = f"{path}{sep}list=true"
     url = f"{base_url}/v1{path}"
     headers = _headers(client_token)
     async with httpx.AsyncClient(verify=conn.get("verify_ssl", True), timeout=30.0) as client:
